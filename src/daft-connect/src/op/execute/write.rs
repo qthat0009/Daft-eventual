@@ -54,9 +54,12 @@ impl Session {
                 bail!("Source is required");
             };
 
-            if source != "parquet" {
-                bail!("Unsupported source: {source}; only parquet is supported");
-            }
+            let file_format = match &*source {
+                    "parquet" => FileFormat::Parquet,
+                "csv" => FileFormat::Csv,
+                    "json" => FileFormat::Json,
+                    _ => bail!("Unsupported source: {source}; only parquet and csv are supported"),
+            };
 
             let Ok(mode) = SaveMode::try_from(mode) else {
                 bail!("Invalid save mode: {mode}");
@@ -99,7 +102,7 @@ impl Session {
 
             let Some(save_type) = save_type else {
                 bail!("Save type is required");
-            };
+                };
 
             let path = match save_type {
                 SaveType::Path(path) => path,
@@ -112,7 +115,7 @@ impl Session {
             let plan = translation::to_logical_plan(input)?;
 
             let plan = plan
-                .table_write(&path, FileFormat::Parquet, None, None, None)
+                .table_write(&path, file_format, None, None, None)
                 .wrap_err("Failed to create table write plan")?;
 
             let optimized_plan = plan.optimize()?;
